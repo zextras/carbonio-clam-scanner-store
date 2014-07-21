@@ -2,11 +2,11 @@
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
  * Copyright (C) 2005, 2006, 2007, 2009, 2010, 2011, 2013, 2014 Zimbra, Inc.
- * 
+ *
  * This program is free software: you can redistribute it and/or modify it under
  * the terms of the GNU General Public License as published by the Free Software Foundation,
  * version 2 of the License.
- * 
+ *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
@@ -25,34 +25,28 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-import com.zimbra.common.util.Log;
-import com.zimbra.common.util.LogFactory;
-
-import com.zimbra.cs.extension.ZimbraExtension;
-import com.zimbra.cs.service.mail.UploadScanner;
+import com.google.common.net.HostAndPort;
 import com.zimbra.common.io.TcpServerInputStream;
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ByteUtil;
 import com.zimbra.common.util.CliUtil;
+import com.zimbra.common.util.Log;
+import com.zimbra.common.util.ZimbraLog;
+import com.zimbra.cs.extension.ZimbraExtension;
+import com.zimbra.cs.service.mail.UploadScanner;
 
 public class ClamScanner extends UploadScanner implements ZimbraExtension {
 
     private static final String DEFAULT_URL = "clam://localhost:3310/";
 
-    private static Log mLog = LogFactory.getLog(ClamScanner.class);
+    private static final Log LOG = ZimbraLog.extensions;
 
     private boolean mInitialized;
 
     private String mClamdHost;
 
     private int mClamdPort;
-
-    private static final String CLAM_URL_REGEX = "[Cc][Ll][Aa][Mm]://([A-Za-z0-9]+):([0-9]+).*";
-
-    private static final Pattern CLAM_URL_PATTERN = Pattern.compile(CLAM_URL_REGEX);
 
     public ClamScanner() {
     }
@@ -66,19 +60,19 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
         try {
             mConfig = new ClamScannerConfig();
             if (!mConfig.getEnabled()) {
-                mLog.info("attachment scan is disabled");
+                LOG.info("attachment scan is disabled");
                 mInitialized = true;
                 return;
             }
 
             setURL(mConfig.getURL());
-            mLog.info("attachment scan enabled url=" + mConfig.getURL());
+            LOG.info("attachment scan enabled host=[%s] port=[%s]", mClamdHost, mClamdPort);
 
             UploadScanner.registerScanner(this);
         } catch (ServiceException e) {
-            mLog.error("error creating scanner", e);
+            LOG.error("error creating scanner", e);
         } catch (MalformedURLException e) {
-            mLog.error("error creating scanner", e);
+            LOG.error("error creating scanner", e);
         }
     }
 
@@ -93,16 +87,18 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
         if (urlArg == null) {
             urlArg = DEFAULT_URL;
         }
-
-        Matcher m = CLAM_URL_PATTERN.matcher(urlArg);
-        if (!m.matches()) {
-            throw new MalformedURLException("invalid clam url: " + urlArg);
+        String protocolPrefix = "clam://";
+        if (!urlArg.toLowerCase().startsWith(protocolPrefix)) {
+            throw new MalformedURLException("invalid clamd url " + urlArg);
         }
-
-        mClamdHost = m.group(1);
-        mClamdPort = Integer.valueOf(m.group(2)).intValue();
-        if (mClamdPort <= 0) {
-            throw new MalformedURLException("invalid clamd port: " + mClamdPort);
+        try {
+            HostAndPort hostPort = HostAndPort.fromString(urlArg.substring(protocolPrefix.length()));
+            hostPort.requireBracketsForIPv6();
+            mClamdPort = hostPort.getPort();
+            mClamdHost = hostPort.getHostText();
+        } catch (IllegalArgumentException iae) {
+            LOG.error("cannot parse clamd url due to illegal arg exception", iae);
+            throw new MalformedURLException("cannot parse clamd url due to illegal arg exception: " + iae.getMessage());
         }
 
         mInitialized = true;
@@ -119,7 +115,7 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
         try {
             return accept0(array, null, info);
         } catch (Exception e) {
-            mLog.error("exception communicating with clamd", e);
+            LOG.error("exception communicating with clamd", e);
             return ERROR;
         }
     }
@@ -133,7 +129,7 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
         try {
             return accept0(null, is, info);
         } catch (Exception e) {
-            mLog.error("exception communicating with clamd", e);
+            LOG.error("exception communicating with clamd", e);
             return ERROR;
         }
     }
@@ -145,18 +141,18 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
         Socket dataSocket = null;
 
         try {
-            if (mLog.isDebugEnabled()) { mLog.debug("connecting to " + mClamdHost + ":" + mClamdPort); }
+            if (LOG.isDebugEnabled()) { LOG.debug("connecting to " + mClamdHost + ":" + mClamdPort); }
             commandSocket = new Socket(mClamdHost, mClamdPort);
 
             BufferedOutputStream out = new BufferedOutputStream(commandSocket.getOutputStream());
             TcpServerInputStream in = new TcpServerInputStream(commandSocket.getInputStream());
 
-            if (mLog.isDebugEnabled()) { mLog.debug("writing STREAM command"); }
+            if (LOG.isDebugEnabled()) { LOG.debug("writing STREAM command"); }
             out.write("STREAM".getBytes("iso-8859-1"));
             out.write(lineSeparator);
             out.flush();
 
-            if (mLog.isDebugEnabled()) { mLog.debug("reading PORT"); }
+            if (LOG.isDebugEnabled()) { LOG.debug("reading PORT"); }
             // REMIND - should have timeout's on this...
             String portLine = in.readLine();
             if (portLine == null) {
@@ -172,18 +168,18 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
                 throw new ProtocolException("No port number in: " + portLine);
             }
 
-            if (mLog.isDebugEnabled()) { mLog.debug("stream connect to " + mClamdHost + ":" + port); }
+            if (LOG.isDebugEnabled()) { LOG.debug("stream connect to " + mClamdHost + ":" + port); }
             dataSocket = new Socket(mClamdHost, port);
             if (data != null) {
                 dataSocket.getOutputStream().write(data);
-                if (mLog.isDebugEnabled()) { mLog.debug("wrote " + data.length + " bytes"); }
+                if (LOG.isDebugEnabled()) { LOG.debug("wrote " + data.length + " bytes"); }
             } else {
                 long count = ByteUtil.copy(is, false, dataSocket.getOutputStream(), false);
-                if (mLog.isDebugEnabled()) { mLog.debug("copied " + count + " bytes"); }
+                if (LOG.isDebugEnabled()) { LOG.debug("copied " + count + " bytes"); }
             }
             dataSocket.close();
 
-            if (mLog.isDebugEnabled()) { mLog.debug("reading result"); }
+            if (LOG.isDebugEnabled()) { LOG.debug("reading result"); }
             String answer = in.readLine();
             if (answer == null) {
                 throw new ProtocolException("EOF from clamd when looking for result");
@@ -200,7 +196,7 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
             }
         } finally {
             if (dataSocket != null && !dataSocket.isClosed()) {
-                mLog.warn("deffered close of stream connection");
+                LOG.warn("deffered close of stream connection");
                 dataSocket.close();
             }
             if (commandSocket != null) {
