@@ -4,11 +4,16 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="src" path="/ZimbraServer"/>
 	<classpathentry kind="lib" path="/ZimbraCommon/jars/commons-logging.jar"/>
-	<classpathentry sourcepath="/ZimbraCommon/jars-src/commons-fileupload-1.2.2-src.zip" kind="lib" path="/ZimbraCommon/jars/commons-fileupload-1.2.2.jar">
+	<classpathentry kind="lib" path="/ZimbraCommon/jars/commons-fileupload-1.2.2.jar" sourcepath="/ZimbraCommon/jars-src/commons-fileupload-1.2.2-src.zip">
 		<attributes>
-			<attribute value="jar:platform:/resource/ZimbraCommon/jars-javadoc/commons-fileupload-1.2.2-javadoc.zip!/" name="javadoc_location"/>
+			<attribute name="javadoc_location" value="jar:platform:/resource/ZimbraCommon/jars-javadoc/commons-fileupload-1.2.2-javadoc.zip!/"/>
 		</attributes>
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZimbraCommon"/>
+	<classpathentry kind="lib" path="/ZimbraCommon/jars/guava-10.0.1.jar" sourcepath="/ZimbraCommon/jars-src/guava-10.0.1-sources.zip">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:platform:/resource/ZimbraCommon/jars-javadoc/guava-10.0.1-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>
