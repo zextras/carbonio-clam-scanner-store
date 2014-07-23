@@ -1,17 +1,15 @@
 /*
  * ***** BEGIN LICENSE BLOCK *****
  * Zimbra Collaboration Suite Server
- * Copyright (C) 2005, 2006, 2007, 2009, 2010, 2011, 2013, 2014 Zimbra, Inc.
- *
- * This program is free software: you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software Foundation,
- * version 2 of the License.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
- * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License along with this program.
- * If not, see <http://www.gnu.org/licenses/>.
+ * Copyright (C) 2005, 2006, 2007, 2009, 2010, 2011, 2013 Zimbra Software, LLC.
+ * 
+ * The contents of this file are subject to the Zimbra Public License
+ * Version 1.4 ("License"); you may not use this file except in
+ * compliance with the License.  You may obtain a copy of the License at
+ * http://www.zimbra.com/license.
+ * 
+ * Software distributed under the License is distributed on an "AS IS"
+ * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied.
  * ***** END LICENSE BLOCK *****
  */
 
@@ -25,18 +23,16 @@ import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-
 import com.google.common.net.HostAndPort;
 import com.zimbra.common.io.TcpServerInputStream;
-import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.ByteUtil;
 import com.zimbra.common.util.CliUtil;
+
 import com.zimbra.common.util.Log;
 import com.zimbra.common.util.ZimbraLog;
-import com.zimbra.cs.extension.ZimbraExtension;
 import com.zimbra.cs.service.mail.UploadScanner;
 
-public class ClamScanner extends UploadScanner implements ZimbraExtension {
+public class ClamScanner extends UploadScanner{
 
     private static final String DEFAULT_URL = "clam://localhost:3310/";
 
@@ -50,43 +46,13 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
 
     public ClamScanner() {
     }
-
-    @Override
-    public synchronized void init() {
-        if (mInitialized) {
-            return;
-        }
-
-        try {
-            mConfig = new ClamScannerConfig();
-            if (!mConfig.getEnabled()) {
-                LOG.info("attachment scan is disabled");
-                mInitialized = true;
-                return;
-            }
-
-            setURL(mConfig.getURL());
-            LOG.info("attachment scan enabled host=[%s] port=[%s]", mClamdHost, mClamdPort);
-
-            UploadScanner.registerScanner(this);
-        } catch (ServiceException e) {
-            LOG.error("error creating scanner", e);
-        } catch (MalformedURLException e) {
-            LOG.error("error creating scanner", e);
-        }
-    }
-
-    @Override
-    public void destroy() {
-        mInitialized = false;
-        UploadScanner.unregisterScanner(this);
-    }
-
+    
     @Override
     public void setURL(String urlArg) throws MalformedURLException {
         if (urlArg == null) {
             urlArg = DEFAULT_URL;
         }
+
         String protocolPrefix = "clam://";
         if (!urlArg.toLowerCase().startsWith(protocolPrefix)) {
             throw new MalformedURLException("invalid clamd url " + urlArg);
@@ -103,8 +69,6 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
 
         mInitialized = true;
     }
-
-    private ClamScannerConfig mConfig;
 
     @Override
     protected Result accept(byte[] array, StringBuffer info) {
@@ -207,42 +171,8 @@ public class ClamScanner extends UploadScanner implements ZimbraExtension {
 
     @Override
     public boolean isEnabled() {
-        return mInitialized && mConfig.getEnabled();
+        return mInitialized;
     }
 
-    public static void main(String[] args) throws IOException {
-        CliUtil.toolSetup();
-        StringBuffer info = new StringBuffer();
-
-        ClamScanner scanner = new ClamScanner();
-        scanner.setURL(args[0]);
-
-        int count = Integer.getInteger("clam.test.count", 1).intValue();
-
-        for (int iter = 0; iter < count; iter++) {
-            for (int i = 1; i < args.length; i++) {
-                info.setLength(0);
-                InputStream is = new FileInputStream(args[i]);
-                Result result = scanner.accept(new FileInputStream(args[i]), info);
-                is.close();
-                System.out.println("result=" + result + " file=" + args[i] + " info=" + info.toString());
-            }
-
-        }
-
-        if (System.getProperty("clam.test.sleep") != null) {
-            System.out.println("Sleeping...");
-            System.out.flush();
-            try {
-                Thread.sleep(Integer.MAX_VALUE);
-            } catch (InterruptedException ie) {
-                ie.printStackTrace();
-            }
-        }
-    }
-
-    @Override
-    public String getName() {
-        return "clamscanner";
-    }
 }
+

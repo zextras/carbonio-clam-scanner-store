@@ -11,9 +11,16 @@
 	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/ZimbraCommon"/>
 	<classpathentry kind="lib" path="/ZimbraCommon/jars/guava-13.0.1.jar" sourcepath="/ZimbraCommon/jars-src/guava-13.0.1-sources.zip">
+>>>> ORIGINAL //depot/zimbra/JP-INTERNS/ClamScanner/.classpath#1
+==== THEIRS //depot/zimbra/JP-INTERNS/ClamScanner/.classpath#2
+	   <attributes>
+	       <attribute name="javadoc_location" value="jar:platform:/resource/ZimbraCommon/jars-javadoc/guava-13.0.1-javadoc.jar!/"/>
+	   </attributes>
+==== YOURS //gprasad-int/main/ClamScanner/.classpath
 		<attributes>
 			<attribute name="javadoc_location" value="jar:platform:/resource/ZimbraCommon/jars-javadoc/guava-13.0.1-javadoc.jar!/"/>
 		</attributes>
+<<<<
 	</classpathentry>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

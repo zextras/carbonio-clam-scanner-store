@@ -24,27 +24,23 @@ import com.zimbra.cs.account.Server;
 
 public class ClamScannerConfig {
 
-    private boolean mEnabled;
+    private final boolean mEnabled;
     
-    private String mURL;
+    private final String[] mURL;
     
     public ClamScannerConfig() throws ServiceException {
-        reload();
-    }
-    
-    public void reload() throws ServiceException {
         Config globalConfig = Provisioning.getInstance().getConfig();
         mEnabled = globalConfig.getBooleanAttr(Provisioning.A_zimbraAttachmentsScanEnabled, false);
         
         Server serverConfig = Provisioning.getInstance().getLocalServer();
-        mURL = serverConfig.getAttr(Provisioning.A_zimbraAttachmentsScanURL);
+        mURL = serverConfig.getAttachmentsScanURL();
     }
 
     public boolean getEnabled() {
         return mEnabled;
     }
     
-    public String getURL() {
+    public String[] getURL() {
         return mURL;
     }
 }
