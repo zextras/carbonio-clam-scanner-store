@@ -18,18 +18,17 @@
 package com.zimbra.clam;
 
 import java.io.BufferedOutputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 import com.zimbra.common.io.TcpServerInputStream;
 import com.zimbra.common.util.ByteUtil;
-import com.zimbra.common.util.CliUtil;
-
 import com.zimbra.common.util.Log;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.service.mail.UploadScanner;
@@ -48,7 +47,7 @@ public class ClamScanner extends UploadScanner{
 
     public ClamScanner() {
     }
-    
+
     @Override
     public void setURL(String urlArg) throws MalformedURLException {
         if (urlArg == null) {
@@ -60,6 +59,9 @@ public class ClamScanner extends UploadScanner{
             throw new MalformedURLException("invalid clamd url " + urlArg);
         }
         try {
+            if (urlArg.lastIndexOf('/') > protocolPrefix.length()) {
+                urlArg = urlArg.substring(0, urlArg.lastIndexOf('/'));
+            }
             HostAndPort hostPort = HostAndPort.fromString(urlArg.substring(protocolPrefix.length()));
             hostPort.requireBracketsForIPv6();
             mClamdPort = hostPort.getPort();
@@ -174,6 +176,16 @@ public class ClamScanner extends UploadScanner{
     @Override
     public boolean isEnabled() {
         return mInitialized;
+    }
+
+    @VisibleForTesting
+    String getClamdHost() {
+        return mClamdHost;
+    }
+
+    @VisibleForTesting
+    int getClamdPort() {
+        return mClamdPort;
     }
 
 }
