@@ -7,6 +7,8 @@
 	<property name="common.dir" location="../ZimbraCommon" />
 	<property name="common.internal.jars.dir" location="../ZimbraCommon/jars-internal/jars" />
 	<property name="common.classes.dir" location="${common.dir}/build/classes" />
+    <property name="zimbraClient.dir" location="../ZimbraClient" />
+    <property name="zimbraClient.classes.dir" location="${zimbraClient.dir}/build/classes" />
 
 	<path id="all.java.path">
 		<pathelement location="${src.java.dir}" />
@@ -29,6 +31,7 @@
 
 	<path id="class.path">
 		<pathelement location="${common.classes.dir}" />
+        <pathelement location="${zimbraClient.classes.dir}" />
 		<pathelement location="${build.classes.dir}" />
 		<pathelement location="${zimbraServer.dir}/build/classes"/>
 		<fileset dir="${common.dir}/jars">
