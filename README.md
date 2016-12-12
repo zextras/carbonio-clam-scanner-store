@@ -10,4 +10,4 @@
 
 ## Artifacts
 
-- `zimbraclamscanner.jar`
+- `zm-clam-scanner-store-*.jar`
