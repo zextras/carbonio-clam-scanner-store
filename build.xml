@@ -3,7 +3,7 @@
     <import file="../zm-zcs/ant-global.xml" />
 
     <target name="jar" depends="compile" description="Creates the jar file">
-        <antcall target="zimbra-jar">
+        <antcall target="zextras-jar">
             <param name="implementation.title" value="Zimbra Clam Scanner"/>
             <param name="zimbra.extension.class" value="com.zimbra.clam.ClamScannerExt" />
         </antcall>
