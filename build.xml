@@ -1,6 +1,21 @@
 <project name="zm-clam-scanner-store" default="jar" xmlns:ivy="antlib:org.apache.ivy.ant">
 
-    <import file="../zm-zcs/ant-global.xml" />
+    <import file="./build-common.xml" />
+
+    <!-- Targets -->
+    <target name="publish-local-all" depends="init-ivy-cache">
+        <ant dir="./" target="publish-local" inheritAll="true" />
+        <echo>Publishing jar in local cache</echo>
+    </target>
+
+    <target name="publish-maven-all" depends="publish-local-all">
+        <ant dir="./" target="publish-maven" inheritAll="true" />
+        <echo>Publish artifacts on public maven</echo>
+    </target>
+
+    <target name="init-ivy-cache">
+        <mkdir dir="${user.home}/.ivy2/cache" />
+    </target>
 
     <target name="jar" depends="compile" description="Creates the jar file">
         <antcall target="zextras-jar">
