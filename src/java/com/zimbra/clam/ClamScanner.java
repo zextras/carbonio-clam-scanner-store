@@ -94,7 +94,7 @@ public class ClamScanner extends UploadScanner {
    * @author Keshav Bhatt
    * @since 23.7.0
    */
-  private String sanitizedUrl(final String urlArg)
+  static String sanitizedUrl(final String urlArg)
       throws MalformedURLException {
     String sanitizedUrl = urlArg;
     if (!urlArg.toLowerCase().startsWith(PROTOCOL_PREFIX)) {
