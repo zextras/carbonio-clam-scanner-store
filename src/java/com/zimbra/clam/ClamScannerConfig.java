@@ -23,7 +23,7 @@ public class ClamScannerConfig {
 
   public ClamScannerConfig() throws ServiceException {
     try {
-      Server serverConfig = Provisioning.getInstance().getLocalServer();
+      final Server serverConfig = Provisioning.getInstance().getLocalServer();
       mEnabled = serverConfig.getBooleanAttr(ZAttrProvisioning.A_zimbraAttachmentsScanEnabled,
           false);
       mURL = serverConfig.getAttachmentsScanURL();

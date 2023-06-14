@@ -79,7 +79,7 @@ public class ClamScanner extends UploadScanner {
 
   @Override
   protected Result accept(byte[] bytes, StringBuffer scanOutput) {
-    ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+    final ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
     return performScan(bis, scanOutput);
   }
 

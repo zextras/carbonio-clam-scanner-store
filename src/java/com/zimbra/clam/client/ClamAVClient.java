@@ -58,7 +58,7 @@ public class ClamAVClient {
    * @since 23.7.0
    */
   public static boolean replyOk(byte[] reply) {
-    String output = new String(reply, StandardCharsets.UTF_8);
+    final String output = new String(reply, StandardCharsets.UTF_8);
     return (output.contains("OK") && !output.contains("FOUND"));
   }
 
@@ -74,7 +74,7 @@ public class ClamAVClient {
    * @since 23.7.0
    */
   private static byte[] readAll(InputStream is) throws IOException {
-    ByteArrayOutputStream tmp = new ByteArrayOutputStream();
+    final ByteArrayOutputStream tmp = new ByteArrayOutputStream();
 
     byte[] buf = new byte[2000];
     int read;
@@ -173,7 +173,7 @@ public class ClamAVClient {
    * @since 23.7.0
    */
   public byte[] scan(byte[] in) throws IOException {
-    ByteArrayInputStream bis = new ByteArrayInputStream(in);
+    final ByteArrayInputStream bis = new ByteArrayInputStream(in);
     return scan(bis);
   }
 
@@ -190,7 +190,7 @@ public class ClamAVClient {
    * @since 23.7.0
    */
   private byte[] assertSizeLimit(byte[] reply) {
-    String r = new String(reply, StandardCharsets.UTF_8);
+    final String r = new String(reply, StandardCharsets.UTF_8);
     if (r.startsWith("INSTREAM size limit exceeded.")) {
       throw new ClamAVSizeLimitException(
           "ClamAV daemon size limit exceeded. Full reply from server: " + r);
