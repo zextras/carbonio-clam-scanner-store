@@ -5,8 +5,11 @@
 
 package com.zimbra.clam;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.net.MalformedURLException;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class ClamScannerTest {
@@ -19,7 +22,7 @@ public class ClamScannerTest {
     try {
       scanner.setURL(validUrl);
     } catch (MalformedURLException e) {
-      Assert.fail("Unexpected MalformedURLException occurred");
+      fail("Unexpected MalformedURLException occurred");
     }
   }
 
@@ -28,18 +31,18 @@ public class ClamScannerTest {
     try {
       scanner.setURL(url);
     } catch (MalformedURLException e) {
-      Assert.fail("failed to parse [" + url + "]");
+      fail("failed to parse [" + url + "]");
     }
-    Assert.assertTrue(scanner.isEnabled());
-    Assert.assertEquals(expectedHost, scanner.getClamAVClientHostname());
-    Assert.assertEquals(expectedPort, scanner.getClamAVClientPort());
+    assertTrue(scanner.isEnabled());
+    assertEquals(expectedHost, scanner.getClamAVClientHostname());
+    assertEquals(expectedPort, scanner.getClamAVClientPort());
   }
 
   public void parseBadUrl(String url) {
     ClamScanner scanner = new ClamScanner();
     try {
       scanner.setURL(url);
-      Assert.fail("expected parse error from url [" + url + "]");
+      fail("expected parse error from url [" + url + "]");
     } catch (MalformedURLException e) {
       //expected - bad url
     } catch (IllegalStateException e) {
@@ -101,9 +104,9 @@ public class ClamScannerTest {
     String validUrl = "clam://example.com:1234";
     try {
       String sanitizedUrl = ClamScanner.sanitizedUrl(validUrl);
-      Assert.assertEquals(validUrl, sanitizedUrl);
+      assertEquals(validUrl, sanitizedUrl);
     } catch (MalformedURLException e) {
-      Assert.fail("Should not throw an exception for a valid URL");
+      fail("Should not throw an exception for a valid URL");
     }
   }
 
@@ -112,9 +115,9 @@ public class ClamScannerTest {
     String invalidUrl = "http://example.com";
     try {
       ClamScanner.sanitizedUrl(invalidUrl);
-      Assert.fail("Should throw MalformedURLException for an invalid protocol");
+      fail("Should throw MalformedURLException for an invalid protocol");
     } catch (MalformedURLException e) {
-      Assert.assertEquals("Invalid clamd URL: " + invalidUrl, e.getMessage());
+      assertEquals("Invalid clamd URL: " + invalidUrl, e.getMessage());
     }
   }
 
@@ -123,9 +126,9 @@ public class ClamScannerTest {
     String invalidUrl = "clam://example.com:99999";
     try {
       ClamScanner.sanitizedUrl(invalidUrl);
-      Assert.fail("Should throw MalformedURLException for an invalid port");
+      fail("Should throw MalformedURLException for an invalid port");
     } catch (MalformedURLException e) {
-      Assert.assertEquals("Invalid or out of bound port specified in URL: " + invalidUrl, e.getMessage());
+      assertEquals("Invalid or out of bound port specified in URL: " + invalidUrl, e.getMessage());
     }
   }
 
@@ -134,9 +137,9 @@ public class ClamScannerTest {
     String invalidUrl = "clam://example.com:abc";
     try {
       ClamScanner.sanitizedUrl(invalidUrl);
-      Assert.fail("Should throw MalformedURLException for an invalid port format");
+      fail("Should throw MalformedURLException for an invalid port format");
     } catch (MalformedURLException e) {
-      Assert.assertEquals("Invalid port specified in URL: " + invalidUrl + ": For input string: \"abc\"", e.getMessage());
+      assertEquals("Invalid port specified in URL: " + invalidUrl + ": For input string: \"abc\"", e.getMessage());
     }
   }
 }

@@ -9,6 +9,7 @@ import com.zimbra.clam.client.ClamAVClient;
 import com.zimbra.common.util.Log;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.service.mail.UploadScanner;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -30,59 +31,6 @@ public class ClamScanner extends UploadScanner {
   private static final Log LOGGER = ZimbraLog.extensions;
 
   private ClamAVClient mClamAVClient = null;
-
-  @Override
-  protected Result accept(InputStream inputStream, StringBuffer scanOutput) {
-    return performScan(inputStream, scanOutput);
-  }
-
-  @Override
-  protected Result accept(byte[] bytes, StringBuffer scanOutput) {
-    return performScan(bytes, scanOutput);
-  }
-
-  @Override
-  public boolean isEnabled() {
-    return mClamAVClient != null;
-  }
-
-  /**
-   * Wrapper to scan a supplied byte array or an input stream with the {@link ClamAVClient}
-   *
-   * <p>
-   *
-   * @param data ByteArray or InputStream object
-   * @return the result object {@link UploadScanner.Result}
-   *
-   * <p>
-   * @author Keshav Bhatt
-   * @since 23.7.0
-   */
-  private Result performScan(Object data, StringBuffer scanOutput) {
-    if (mClamAVClient == null) {
-      return ERROR;
-    }
-    // SCAN
-    try {
-      byte[] result;
-      if (data instanceof InputStream) {
-        result = mClamAVClient.scan((InputStream) data);
-      } else if (data instanceof byte[]) {
-        result = mClamAVClient.scan((byte[]) data);
-      } else {
-        throw new IllegalArgumentException("Invalid or unsupported data type for scanning");
-      }
-      scanOutput.append(new String(result, StandardCharsets.UTF_8));
-      if (ClamAVClient.replyOk(result)) {
-        return ACCEPT;
-      } else {
-        return REJECT;
-      }
-    } catch (IOException e) {
-      LOGGER.error("Could not scan the input", e);
-      return ERROR;
-    }
-  }
 
   /**
    * @param urlArg URL string to be verified and sanitized.
@@ -122,6 +70,54 @@ public class ClamScanner extends UploadScanner {
       }
     }
     return sanitizedUrl;
+  }
+
+  @Override
+  protected Result accept(InputStream inputStream, StringBuffer scanOutput) {
+    return performScan(inputStream, scanOutput);
+  }
+
+  @Override
+  protected Result accept(byte[] bytes, StringBuffer scanOutput) {
+    ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+    return performScan(bis, scanOutput);
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return mClamAVClient != null;
+  }
+
+  /**
+   * Wrapper to scan a supplied InputStream with the {@link ClamAVClient}
+   *
+   * <p>
+   *
+   * @param data InputStream object
+   * @return the result object {@link UploadScanner.Result}
+   *
+   * <p>
+   * @author Keshav Bhatt
+   * @since 23.7.0
+   */
+  private Result performScan(InputStream data, StringBuffer scanOutput) {
+    if (mClamAVClient == null) {
+      return ERROR;
+    }
+    // SCAN
+    try {
+      byte[] result;
+      result = mClamAVClient.scan(data);
+      scanOutput.append(new String(result, StandardCharsets.UTF_8));
+      if (ClamAVClient.replyOk(result)) {
+        return ACCEPT;
+      } else {
+        return REJECT;
+      }
+    } catch (IOException e) {
+      LOGGER.error("Could not scan the input", e);
+      return ERROR;
+    }
   }
 
   /**
