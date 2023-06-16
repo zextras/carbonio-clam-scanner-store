@@ -15,7 +15,7 @@ public class ClamScannerConfig {
   // fallback configuration is used when set URLs are not valid
   static final String FALLBACK_HOSTNAME = "127.78.0.17";
   static final int FALLBACK_PORT = 20000;
-  static final int FALLBACK_TIMEOUT = 2000;
+  static final int FALLBACK_TIMEOUT = 20000; // 20seconds
   static final int FALLBACK_CHUNK_SIZE = 2048;
 
   private final boolean mEnabled;
