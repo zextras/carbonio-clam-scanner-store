@@ -5,63 +5,58 @@
 
 package com.zimbra.clam;
 
-import java.net.MalformedURLException;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-
 import com.zimbra.common.service.ServiceException;
 import com.zimbra.common.util.Log;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.extension.ZimbraExtension;
 import com.zimbra.cs.service.mail.UploadScanner;
+import java.net.MalformedURLException;
+import java.util.LinkedList;
+import java.util.List;
 
 public class ClamScannerExt implements ZimbraExtension {
 
-    private static final Log LOG = ZimbraLog.extensions;
-   
-    public ClamScannerExt() {
-    }
+  private static final Log LOG = ZimbraLog.extensions;
+  private final List<ClamScanner> clamScannerList = new LinkedList<>();
 
-    @Override
-    public synchronized void init() {
-        
-        try {
-            mConfig = new ClamScannerConfig();
-           
-            if (!mConfig.getEnabled()) {
-                LOG.info("attachment scan is disabled");
-                return;
-            }
-            
-            String[] urls = mConfig.getURL();
-            for (int i = 0; i < urls.length; i++) {
-                ClamScanner clamScanner = new ClamScanner();
-                String url = urls[i];
-                clamScanner.setURL(url);
-                UploadScanner.registerScanner(clamScanner);
-                clamScannerList.add(clamScanner);
-            }
-        } catch (ServiceException e) {
-            LOG.error("error creating scanner", e);
-        } catch (MalformedURLException e) {
-            LOG.error("error creating scanner", e);
+  @Override
+  public synchronized void init() {
+
+    try {
+      final ClamScannerConfig config = new ClamScannerConfig();
+      if (!config.getEnabled()) {
+        LOG.info("attachment scan is disabled");
+        return;
+      }
+
+      final String[] urls = config.getURLs();
+      if (urls.length == 0) {
+        final ClamScanner clamScanner = new ClamScanner();
+        clamScanner.setURL(null);
+        UploadScanner.registerScanner(clamScanner);
+        clamScannerList.add(clamScanner);
+      } else {
+        for (String url : urls) {
+          final ClamScanner clamScanner = new ClamScanner();
+          clamScanner.setURL(url);
+          UploadScanner.registerScanner(clamScanner);
+          clamScannerList.add(clamScanner);
         }
+      }
+    } catch (ServiceException | MalformedURLException e) {
+      LOG.error("error creating scanner", e);
     }
+  }
 
-    @Override
-    public void destroy() {
-        for (Iterator iter = clamScannerList.iterator(); iter.hasNext();) {
-            ClamScanner clamScanner = (ClamScanner)iter.next();
-            UploadScanner.unregisterScanner(clamScanner);
-        }
+  @Override
+  public void destroy() {
+    for (ClamScanner clamScanner : clamScannerList) {
+      UploadScanner.unregisterScanner(clamScanner);
     }
+  }
 
-    private ClamScannerConfig mConfig;
-    private List<ClamScanner> clamScannerList = new LinkedList<ClamScanner>();  
-
-    @Override
-    public String getName() {
-        return "clamscanner";
-    }
+  @Override
+  public String getName() {
+    return "clamscanner";
+  }
 }

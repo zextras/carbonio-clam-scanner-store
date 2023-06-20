@@ -9,12 +9,24 @@ SPDX-License-Identifier: AGPL-3.0-only
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
   <info organisation="zextras" module="zm-clam-scanner-store" status="release"/>
+
+  <configurations>
+    <conf name="compile" description="Dependencies needed during compilation and runtime"/>
+    <conf name="provided" description="Dependencies provided by the runtime environment"/>
+    <conf name="runtime" description="Dependencies needed at runtime"/>
+    <conf name="test" description="Dependencies needed for testing"/>
+  </configurations>
+
   <dependencies>
-    <dependency org="junit" name="junit" rev="4.8.2"/>
+    <dependency org="junit" name="junit" rev="4.8.2" conf="test->default"/>
     <dependency org="log4j" name="log4j" rev="1.2.16"/>
     <dependency org="com.google.guava" name="guava" rev="${com.google.guava.version}"/>
     <dependency org="commons-fileupload" name="commons-fileupload" rev="1.4"/>
     <dependency org="commons-logging" name="commons-logging" rev="1.1.1"/>
+    <dependency org="org.mockito" name="mockito-core" rev="${mockito.version}"
+      conf="test->default"/>
+    <dependency org="org.mockito" name="mockito-inline" rev="${mockito.version}"
+      conf="test->default"/>
     <dependency org="zextras" name="zm-common" rev="latest.integration"/>
     <dependency org="zextras" name="zm-soap" rev="latest.integration"/>
     <dependency org="zextras" name="zm-client" rev="latest.integration"/>
