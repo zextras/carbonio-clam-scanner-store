@@ -24,18 +24,24 @@ public class ClamScannerExt implements ZimbraExtension {
 
     try {
       final ClamScannerConfig config = new ClamScannerConfig();
-
       if (!config.getEnabled()) {
         LOG.info("attachment scan is disabled");
         return;
       }
 
-      final String[] urls = config.getURL();
-      for (String s : urls) {
+      final String[] urls = config.getURLs();
+      if (urls.length == 0) {
         final ClamScanner clamScanner = new ClamScanner();
-        clamScanner.setURL(s);
+        clamScanner.setURL(null);
         UploadScanner.registerScanner(clamScanner);
         clamScannerList.add(clamScanner);
+      } else {
+        for (String url : urls) {
+          final ClamScanner clamScanner = new ClamScanner();
+          clamScanner.setURL(url);
+          UploadScanner.registerScanner(clamScanner);
+          clamScannerList.add(clamScanner);
+        }
       }
     } catch (ServiceException | MalformedURLException e) {
       LOG.error("error creating scanner", e);

@@ -19,14 +19,14 @@ public class ClamScannerConfig {
   static final int FALLBACK_CHUNK_SIZE = 2048;
 
   private final boolean mEnabled;
-  private final String[] mURL;
+  private final String[] mURLs;
 
   public ClamScannerConfig() throws ServiceException {
     try {
       final Server serverConfig = Provisioning.getInstance().getLocalServer();
       mEnabled = serverConfig.getBooleanAttr(ZAttrProvisioning.A_zimbraAttachmentsScanEnabled,
           false);
-      mURL = serverConfig.getAttachmentsScanURL();
+      mURLs = serverConfig.getAttachmentsScanURL();
     } catch (Exception e) {
       throw ServiceException.FAILURE("Failed to initialize ClamScannerConfig", e);
     }
@@ -36,7 +36,7 @@ public class ClamScannerConfig {
     return mEnabled;
   }
 
-  public String[] getURL() {
-    return mURL;
+  public String[] getURLs() {
+    return mURLs;
   }
 }
