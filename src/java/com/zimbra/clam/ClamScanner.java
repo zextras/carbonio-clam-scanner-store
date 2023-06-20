@@ -156,14 +156,13 @@ public class ClamScanner extends UploadScanner {
 
     mClamAVClient = new ClamAVClient(hostname, port, ClamScannerConfig.FALLBACK_TIMEOUT,
         ClamScannerConfig.FALLBACK_CHUNK_SIZE);
-    if (LOGGER.isDebugEnabled()) {
-      LOGGER.debug(String.format(
-          "Initialized ClamAVClient with Hostname: %s, Port: %s, Timeout: %s, ChunkSize: %s",
-          mClamAVClient.getHostName(),
-          mClamAVClient.getPort(),
-          mClamAVClient.getTimeout(),
-          mClamAVClient.getChunkSize()));
-    }
+
+    LOGGER.info(String.format(
+        "Initialized ClamAVClient with Hostname: %s, Port: %s, Timeout: %s, ChunkSize: %s",
+        mClamAVClient.getHostName(),
+        mClamAVClient.getPort(),
+        mClamAVClient.getTimeout(),
+        mClamAVClient.getChunkSize()));
   }
 
   @Override
