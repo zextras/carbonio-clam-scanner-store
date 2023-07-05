@@ -1,180 +1,190 @@
-// SPDX-FileCopyrightText: 2022 Synacor, Inc.
-// SPDX-FileCopyrightText: 2022 Zextras <https://www.zextras.com>
+// SPDX-FileCopyrightText: 2023 Zextras <https://www.zextras.com>
 //
 // SPDX-License-Identifier: GPL-2.0-only
 
 package com.zimbra.clam;
 
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.Socket;
-import java.net.UnknownHostException;
-
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
-import com.zimbra.common.io.TcpServerInputStream;
-import com.zimbra.common.util.ByteUtil;
+import com.zimbra.clam.client.ClamAVClient;
 import com.zimbra.common.util.Log;
 import com.zimbra.common.util.ZimbraLog;
 import com.zimbra.cs.service.mail.UploadScanner;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 
-public class ClamScanner extends UploadScanner{
 
-    private static final String DEFAULT_URL = "clam://localhost:3310/";
+/**
+ * The ClamScanner class represents a scanner for detecting malware using the ClamAV antivirus
+ * engine. It uses {@link ClamAVClient} to send scan requests and retrieve scan results from a
+ * remotely running ClamAV server.
+ * <p>
+ *
+ * @author Keshav Bhatt
+ * @since 23.7.0
+ */
+public class ClamScanner extends UploadScanner {
 
-    private static final Log LOG = ZimbraLog.extensions;
+  public static final String PROTOCOL_PREFIX = "clam://";
+  private static final Log LOGGER = ZimbraLog.extensions;
 
-    private boolean mInitialized;
+  private ClamAVClient mClamAVClient = null;
 
-    private String mClamdHost;
-
-    private int mClamdPort;
-
-    public ClamScanner() {
+  /**
+   * @param urlArg URL string to be verified and sanitized.
+   *               <p>
+   * @return sanitized URL {@link String}
+   * @throws MalformedURLException if url is malformed
+   *
+   *                               <p>
+   * @author Keshav Bhatt
+   * @since 23.7.0
+   */
+  static String sanitizedUrl(final String urlArg)
+      throws MalformedURLException {
+    String sanitizedUrl = urlArg;
+    if (!urlArg.toLowerCase().startsWith(PROTOCOL_PREFIX)) {
+      throw new MalformedURLException("Invalid clamd URL: " + sanitizedUrl);
     }
 
-    @Override
-    public void setURL(String urlArg) throws MalformedURLException {
-        if (urlArg == null) {
-            urlArg = DEFAULT_URL;
-        }
+    if (sanitizedUrl.lastIndexOf('/') > PROTOCOL_PREFIX.length()) {
+      sanitizedUrl = sanitizedUrl.substring(0, sanitizedUrl.lastIndexOf('/'));
+    }
 
-        String protocolPrefix = "clam://";
-        if (!urlArg.toLowerCase().startsWith(protocolPrefix)) {
-            throw new MalformedURLException("invalid clamd url " + urlArg);
-        }
+    if (sanitizedUrl.startsWith(PROTOCOL_PREFIX)) {
+      int lastIndex = sanitizedUrl.lastIndexOf(":");
+      if (lastIndex > PROTOCOL_PREFIX.length()) {
+        String portStr = sanitizedUrl.substring(lastIndex + 1);
         try {
-            if (urlArg.lastIndexOf('/') > protocolPrefix.length()) {
-                urlArg = urlArg.substring(0, urlArg.lastIndexOf('/'));
-            }
-            HostAndPort hostPort = HostAndPort.fromString(urlArg.substring(protocolPrefix.length()));
-            hostPort.requireBracketsForIPv6();
-            mClamdPort = hostPort.getPort();
-            mClamdHost = hostPort.getHost();
-        } catch (IllegalArgumentException iae) {
-            LOG.error("cannot parse clamd url due to illegal arg exception", iae);
-            throw new MalformedURLException("cannot parse clamd url due to illegal arg exception: " + iae.getMessage());
+          int port = Integer.parseInt(portStr);
+          if (port <= 0 || port > 65535) {
+            throw new MalformedURLException(
+                "Invalid or out of bound port specified in URL: " + sanitizedUrl);
+          }
+        } catch (NumberFormatException e) {
+          throw new MalformedURLException(
+              "Invalid port specified in URL: " + sanitizedUrl + ": " + e.getMessage());
         }
+      }
+    }
+    return sanitizedUrl;
+  }
 
-        mInitialized = true;
+  @Override
+  protected Result accept(InputStream inputStream, StringBuffer scanOutput) {
+    return performScan(inputStream, scanOutput);
+  }
+
+  @Override
+  protected Result accept(byte[] bytes, StringBuffer scanOutput) {
+    final ByteArrayInputStream bis = new ByteArrayInputStream(bytes);
+    return performScan(bis, scanOutput);
+  }
+
+  @Override
+  public boolean isEnabled() {
+    return mClamAVClient != null;
+  }
+
+  /**
+   * Wrapper to scan a supplied InputStream with the {@link ClamAVClient}
+   *
+   * <p>
+   *
+   * @param data InputStream object
+   * @return the result object {@link UploadScanner.Result}
+   *
+   * <p>
+   * @author Keshav Bhatt
+   * @since 23.7.0
+   */
+  private Result performScan(InputStream data, StringBuffer scanOutput) {
+    if (mClamAVClient == null) {
+      return ERROR;
+    }
+    // SCAN
+    try {
+      byte[] result;
+      result = mClamAVClient.scan(data);
+      scanOutput.append(new String(result, StandardCharsets.UTF_8));
+      if (ClamAVClient.replyOk(result)) {
+        return ACCEPT;
+      } else {
+        return REJECT;
+      }
+    } catch (IOException e) {
+      LOGGER.error("Could not scan the input", e);
+      return ERROR;
+    }
+  }
+
+  /**
+   * Wrapper around createClamAVClient to create a new {@link ClamAVClient} with default
+   * configuration.
+   * <p>
+   *
+   * @author Keshav Bhatt
+   * @since 23.7.0
+   */
+  private void createDefaultClamAVClient() {
+    createClamAVClient(ClamScannerConfig.FALLBACK_HOSTNAME, ClamScannerConfig.FALLBACK_PORT);
+  }
+
+  /**
+   * Creates a new ClamAV client with supplied hostname and port. Uses fallback config if supplied
+   * argument are not valid.
+   * <p>
+   *
+   * @param hostname hostname in form of String which {@link ClamAVClient} will use to connect to
+   *                 clamAV daemon
+   * @param port     port number in form of int which {@link ClamAVClient} will use to connect to *
+   *                 clamAV daemon
+   *                 <p>
+   * @author Keshav Bhatt
+   * @since 23.7.0
+   */
+  private void createClamAVClient(String hostname, int port) {
+
+    if (hostname == null) {
+      hostname = ClamScannerConfig.FALLBACK_HOSTNAME;
+    }
+    if (port <= 0) {
+      port = ClamScannerConfig.FALLBACK_PORT;
     }
 
-    @Override
-    protected Result accept(byte[] array, StringBuffer info) {
-        if (!mInitialized) {
-            return ERROR;
-        }
+    mClamAVClient = new ClamAVClient(hostname, port, ClamScannerConfig.FALLBACK_TIMEOUT,
+        ClamScannerConfig.FALLBACK_CHUNK_SIZE);
 
-        try {
-            return accept0(array, null, info);
-        } catch (Exception e) {
-            LOG.error("exception communicating with clamd", e);
-            return ERROR;
-        }
+    LOGGER.info(String.format(
+        "Initialized ClamAVClient with Hostname: %s, Port: %s, Timeout: %s, ChunkSize: %s",
+        mClamAVClient.getHostName(),
+        mClamAVClient.getPort(),
+        mClamAVClient.getTimeout(),
+        mClamAVClient.getChunkSize()));
+  }
+
+  @Override
+  public void setURL(String urlArg) throws MalformedURLException {
+    if (urlArg == null) {
+      createDefaultClamAVClient();
+    } else {
+
+      final String sanitizedUrl;
+      sanitizedUrl = sanitizedUrl(urlArg);
+      final HostAndPort hostPort = HostAndPort.fromString(
+          sanitizedUrl.substring(PROTOCOL_PREFIX.length()));
+
+      createClamAVClient(hostPort.getHost(), hostPort.getPort());
     }
+  }
 
-    @Override
-    protected Result accept(InputStream is, StringBuffer info) {
-        if (!mInitialized) {
-            return ERROR;
-        }
+  String getClamAVClientHostname() {
+    return mClamAVClient.getHostName();
+  }
 
-        try {
-            return accept0(null, is, info);
-        } catch (Exception e) {
-            LOG.error("exception communicating with clamd", e);
-            return ERROR;
-        }
-    }
-
-    private static final byte[] lineSeparator = { '\r', '\n' };
-
-    private Result accept0(byte[] data, InputStream is, StringBuffer info) throws UnknownHostException, IOException {
-        Socket commandSocket = null;
-        Socket dataSocket = null;
-
-        try {
-            if (LOG.isDebugEnabled()) { LOG.debug("connecting to " + mClamdHost + ":" + mClamdPort); }
-            commandSocket = new Socket(mClamdHost, mClamdPort);
-
-            BufferedOutputStream out = new BufferedOutputStream(commandSocket.getOutputStream());
-            TcpServerInputStream in = new TcpServerInputStream(commandSocket.getInputStream());
-
-            if (LOG.isDebugEnabled()) { LOG.debug("writing STREAM command"); }
-            out.write("STREAM".getBytes("iso-8859-1"));
-            out.write(lineSeparator);
-            out.flush();
-
-            if (LOG.isDebugEnabled()) { LOG.debug("reading PORT"); }
-            // REMIND - should have timeout's on this...
-            String portLine = in.readLine();
-            if (portLine == null) {
-                throw new ProtocolException("EOF from clamd when looking for PORT repsonse");
-            }
-            if (!portLine.startsWith("PORT ")) {
-                throw new ProtocolException("Got '" + portLine + "' from clamd, was expecting PORT <n>");
-            }
-            int port = 0;
-            try {
-                port = Integer.valueOf(portLine.substring("PORT ".length())).intValue();
-            } catch (NumberFormatException nfe) {
-                throw new ProtocolException("No port number in: " + portLine);
-            }
-
-            if (LOG.isDebugEnabled()) { LOG.debug("stream connect to " + mClamdHost + ":" + port); }
-            dataSocket = new Socket(mClamdHost, port);
-            if (data != null) {
-                dataSocket.getOutputStream().write(data);
-                if (LOG.isDebugEnabled()) { LOG.debug("wrote " + data.length + " bytes"); }
-            } else {
-                long count = ByteUtil.copy(is, false, dataSocket.getOutputStream(), false);
-                if (LOG.isDebugEnabled()) { LOG.debug("copied " + count + " bytes"); }
-            }
-            dataSocket.close();
-
-            if (LOG.isDebugEnabled()) { LOG.debug("reading result"); }
-            String answer = in.readLine();
-            if (answer == null) {
-                throw new ProtocolException("EOF from clamd when looking for result");
-            }
-            info.setLength(0);
-            if (answer.startsWith("stream: ")) {
-                answer = answer.substring("stream: ".length());
-            }
-            info.append(answer);
-            if (answer.equals("OK")) {
-                return ACCEPT;
-            } else {
-                return REJECT;
-            }
-        } finally {
-            if (dataSocket != null && !dataSocket.isClosed()) {
-                LOG.warn("deffered close of stream connection");
-                dataSocket.close();
-            }
-            if (commandSocket != null) {
-                commandSocket.close();
-            }
-        }
-    }
-
-    @Override
-    public boolean isEnabled() {
-        return mInitialized;
-    }
-
-    @VisibleForTesting
-    String getClamdHost() {
-        return mClamdHost;
-    }
-
-    @VisibleForTesting
-    int getClamdPort() {
-        return mClamdPort;
-    }
-
+  int getClamAVClientPort() {
+    return mClamAVClient.getPort();
+  }
 }
-
