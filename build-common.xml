@@ -586,7 +586,7 @@
   </target>
 
   <target name="publish-local" depends="clean-cache,jar,set-dev-version,init-ivy">
-    <ivy:publish settingsRef="dev.settings" pubrevision="${dev.version}" resolver="local" overwrite="true" />
+    <ivy:publish settingsRef="dev.settings" pubrevision="${dev.version}" resolver="local-maven2" overwrite="true" />
   </target>
 
   <target name="publish-maven" depends="publish-local">
